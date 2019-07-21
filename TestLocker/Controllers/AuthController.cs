@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 using TestLocker.Data;
 using TestLocker.Models;
 using TestLocker.Services;
+using TestLocker.Utils;
 using TestLocker.ViewModels;
 
 namespace TestLocker.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController : ControllerBase
+    public class AuthController : ApiResponse
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly ApplicationContext _applicationContext;
@@ -85,7 +86,7 @@ namespace TestLocker.Controllers
 
             var token = _jwtService.GenerateJwtAsync(user.Email, identity);
 
-            return Ok(token);
+            return Ok(new { token });
         }
     }
 }

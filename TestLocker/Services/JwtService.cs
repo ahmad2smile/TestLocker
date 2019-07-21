@@ -17,9 +17,9 @@ namespace TestLocker.Services
             _configuration = configuration;
         }
 
-        public string GenerateJwtAsync(string email, ClaimsIdentity identity)
+        public string GenerateJwt(string email, ClaimsIdentity identity)
         {
-            var claims = new Claim[]
+            var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
