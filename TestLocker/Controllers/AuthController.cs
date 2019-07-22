@@ -63,6 +63,7 @@ namespace TestLocker.Controllers
                 return BadRequest(ModelState);
             }
 
+
             var appUser = await _userManager.FindByEmailAsync(user.Email);
 
             if (appUser == null)
@@ -84,7 +85,7 @@ namespace TestLocker.Controllers
                     new Claim("rol", "api_access")
                 });
 
-            var token = _jwtService.GenerateJwtAsync(user.Email, identity);
+            var token = _jwtService.GenerateJwt(user.Email, identity);
 
             return Ok(new { token });
         }

@@ -1,15 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 using TestLocker.Data;
 using TestLocker.Models;
+using TestLocker.Utils;
+using TestLocker.ViewModels;
 
 namespace TestLocker.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
-    public class LockersController : ControllerBase
+    [Authorize]
+    [Route("api/[controller]")]
+    public class LockersController : ApiResponse
     {
         private readonly ApplicationContext _applicationContext;
 
@@ -19,28 +23,42 @@ namespace TestLocker.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Locker>> Index()
+        public async Task<ActionResult> Index()
         {
-            return _applicationContext.Lockers.ToList();
+            var lockers = await _applicationContext.Lockers.ToListAsync();
+
+            return Ok(lockers);
         }
 
-        [HttpGet("/details")]
-        public ActionResult<Locker> Details(Guid id)
+        [HttpGet(nameof(Details))]
+        public async Task<ActionResult> Details(Guid id)
         {
-            return _applicationContext.Lockers.FirstOrDefault(locker => locker.Id == id);
+            var locker = await _applicationContext.Lockers.FirstOrDefaultAsync(l => l.Id == id);
+
+            return Ok(locker);
         }
 
-        [HttpPost]
-        public ActionResult<Locker> Create([FromBody]Locker locker)
+        [HttpPost(nameof(Create))]
+        public async Task<ActionResult> Create([FromBody]LockerViewModel lockerModel)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest();
+                return BadRequest(ModelState);
             }
 
-            _applicationContext.Lockers.Add(locker);
+            var locker = new Locker()
+            {
+                Name = lockerModel.Name,
+                AllowedTime = lockerModel.AllowedTime,
+                Link = lockerModel.Link
+            };
 
-            return Created(nameof(Details), locker.Id);
+            var entity = await _applicationContext.Lockers.AddAsync(locker);
+            var createdLocker = entity.Entity;
+
+            await _applicationContext.SaveChangesAsync();
+
+            return Ok(createdLocker);
 
         }
     }
