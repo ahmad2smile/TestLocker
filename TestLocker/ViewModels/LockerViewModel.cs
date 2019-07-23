@@ -9,8 +9,10 @@ namespace TestLocker.ViewModels
         [MinLength(3)]
         public string Name { get; set; }
 
+        [Required]
         public int AllowedTime { get; set; }
 
+        [Required]
         [MaxLength(200)]
         public string Link { get; set; }
 

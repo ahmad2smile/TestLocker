@@ -30,15 +30,35 @@ namespace TestLocker.Controllers
             return Ok(lockers);
         }
 
-        [HttpGet(nameof(Details))]
-        public async Task<ActionResult> Details(Guid id)
+        [HttpGet("{id}")]
+        public async Task<ActionResult> Details(string id)
         {
-            var locker = await _applicationContext.Lockers.FirstOrDefaultAsync(l => l.Id == id);
+            try
+            {
+                var locker = await _applicationContext.Lockers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(l => l.Id.ToString() == id);
 
-            return Ok(locker);
+                if (locker.AccessTime != null)
+                {
+                    return Ok(locker);
+                }
+
+                locker.AccessTime = DateTime.UtcNow;
+
+                _applicationContext.Lockers.Update(locker);
+
+                await _applicationContext.SaveChangesAsync();
+
+                return Ok(locker);
+            }
+            catch (Exception error)
+            {
+                return BadRequest(new { error });
+            }
         }
 
-        [HttpPost(nameof(Create))]
+        [HttpPost]
         public async Task<ActionResult> Create([FromBody]LockerViewModel lockerModel)
         {
             if (!ModelState.IsValid)
@@ -50,7 +70,9 @@ namespace TestLocker.Controllers
             {
                 Name = lockerModel.Name,
                 AllowedTime = lockerModel.AllowedTime,
-                Link = lockerModel.Link
+                Link = lockerModel.Link,
+                AccessTime = null,
+                SubmitTime = null
             };
 
             var entity = await _applicationContext.Lockers.AddAsync(locker);
