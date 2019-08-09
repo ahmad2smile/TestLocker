@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -19,11 +20,13 @@ namespace TestLocker.Controllers
     {
         private readonly ApplicationContext _applicationContext;
         private readonly IEmailService _emailService;
+        private readonly UserManager<AppUser> _userManager;
 
-        public LockersController(ApplicationContext applicationContext, IEmailService emailService)
+        public LockersController(ApplicationContext applicationContext, IEmailService emailService, UserManager<AppUser> userManager)
         {
             _applicationContext = applicationContext;
             _emailService = emailService;
+            _userManager = userManager;
         }
 
         [HttpGet]
@@ -54,9 +57,9 @@ namespace TestLocker.Controllers
 
                 await _applicationContext.SaveChangesAsync();
 
-                var userName = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+                var email = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
 
-                var responseSendEmail = await _emailService.SendEmail("ahmad@oozou.com", "Verify Email", $"User {userName} access locker: {locker.Id} at time: {locker.AccessTime}");
+                var responseSendEmail = await _emailService.SendEmail("ahmad@oozou.com", "Verify Email", $"User {email} access locker: {locker.Id} at time: {locker.AccessTime}");
 
                 if (responseSendEmail >= 400)
                 {
@@ -79,22 +82,35 @@ namespace TestLocker.Controllers
                 return BadRequest(ModelState);
             }
 
-            var locker = new Locker()
+            try
             {
-                Name = lockerModel.Name,
-                AllowedTime = lockerModel.AllowedTime,
-                Link = lockerModel.Link,
-                AccessTime = null,
-                SubmitTime = null
-            };
+                var email = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
 
-            var entity = await _applicationContext.Lockers.AddAsync(locker);
-            var createdLocker = entity.Entity;
+                var user = await _userManager.FindByEmailAsync(email);
 
-            await _applicationContext.SaveChangesAsync();
+                var locker = new Locker()
+                {
+                    Name = lockerModel.Name,
+                    AllowedTime = lockerModel.AllowedTime,
+                    OwnerId = user.Id,
+                    Link = lockerModel.Link,
+                    AccessTime = null,
+                    SubmitTime = null
+                };
 
-            return Ok(createdLocker);
+                var entity = await _applicationContext.Lockers.AddAsync(locker);
+                var createdLocker = entity.Entity;
 
+                await _applicationContext.SaveChangesAsync();
+
+                createdLocker.Owner = null; // TODO: Json ignore not working
+
+                return Ok(createdLocker);
+            }
+            catch (Exception)
+            {
+                return BadRequest(new { error = "Unable to create the Locker" });
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace TestLocker.Models
 {
@@ -14,6 +15,10 @@ namespace TestLocker.Models
         [MaxLength(50)]
         [MinLength(3)]
         public string Name { get; set; }
+
+        public string OwnerId { get; set; }
+        [JsonIgnore]
+        public virtual AppUser Owner { get; set; }
 
         [Required]
         public int AllowedTime { get; set; }
