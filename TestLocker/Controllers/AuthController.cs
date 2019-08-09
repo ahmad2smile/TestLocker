@@ -24,6 +24,7 @@ namespace TestLocker.Controllers
             _userManager = userManager;
             _applicationContext = applicationContext;
             _jwtService = jwtService;
+
         }
 
         [HttpPost(nameof(Register))]
@@ -62,7 +63,6 @@ namespace TestLocker.Controllers
             {
                 return BadRequest(ModelState);
             }
-
 
             var appUser = await _userManager.FindByEmailAsync(user.Email);
 

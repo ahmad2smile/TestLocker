@@ -2,9 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using TestLocker.Data;
 using TestLocker.Models;
+using TestLocker.Services;
 using TestLocker.Utils;
 using TestLocker.ViewModels;
 
@@ -16,10 +18,12 @@ namespace TestLocker.Controllers
     public class LockersController : ApiResponse
     {
         private readonly ApplicationContext _applicationContext;
+        private readonly IEmailService _emailService;
 
-        public LockersController(ApplicationContext applicationContext)
+        public LockersController(ApplicationContext applicationContext, IEmailService emailService)
         {
             _applicationContext = applicationContext;
+            _emailService = emailService;
         }
 
         [HttpGet]
@@ -50,11 +54,20 @@ namespace TestLocker.Controllers
 
                 await _applicationContext.SaveChangesAsync();
 
+                var userName = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+
+                var responseSendEmail = await _emailService.SendEmail("ahmad@oozou.com", "Verify Email", $"User {userName} access locker: {locker.Id} at time: {locker.AccessTime}");
+
+                if (responseSendEmail >= 400)
+                {
+                    return BadRequest(new { error = "Something went wrong please try again" });
+                }
+
                 return Ok(locker);
             }
-            catch (Exception error)
+            catch (Exception)
             {
-                return BadRequest(new { error });
+                return BadRequest(new { error = "Unable to fetch Locker details" });
             }
         }
 
