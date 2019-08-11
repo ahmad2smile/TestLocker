@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -20,19 +19,21 @@ namespace TestLocker.Controllers
     {
         private readonly ApplicationContext _applicationContext;
         private readonly IEmailService _emailService;
-        private readonly UserManager<AppUser> _userManager;
+        private readonly ICurrentUserHelper _currentUser;
 
-        public LockersController(ApplicationContext applicationContext, IEmailService emailService, UserManager<AppUser> userManager)
+        public LockersController(ApplicationContext applicationContext, IEmailService emailService, ICurrentUserHelper currentUser)
         {
             _applicationContext = applicationContext;
             _emailService = emailService;
-            _userManager = userManager;
+            _currentUser = currentUser;
         }
 
         [HttpGet]
         public async Task<ActionResult> Index()
         {
-            var lockers = await _applicationContext.Lockers.ToListAsync();
+            var user = await _currentUser.GetCurrentUser();
+
+            var lockers = await _applicationContext.Lockers.Where(l => l.OwnerId == user.Id).ToListAsync();
 
             return Ok(lockers);
         }
@@ -46,6 +47,11 @@ namespace TestLocker.Controllers
                     .AsNoTracking()
                     .FirstOrDefaultAsync(l => l.Id.ToString() == id);
 
+                if (locker == null)
+                {
+                    return NotFound(new { error = "Locker Not Found" });
+                }
+
                 if (locker.AccessTime != null)
                 {
                     return Ok(locker);
@@ -57,7 +63,7 @@ namespace TestLocker.Controllers
 
                 await _applicationContext.SaveChangesAsync();
 
-                var email = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+                var email = _currentUser.GetCurrentUserEmail();
 
                 var responseSendEmail = await _emailService.SendEmail("ahmad@oozou.com", "Verify Email", $"User {email} access locker: {locker.Id} at time: {locker.AccessTime}");
 
@@ -84,9 +90,7 @@ namespace TestLocker.Controllers
 
             try
             {
-                var email = HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
-
-                var user = await _userManager.FindByEmailAsync(email);
+                var user = await _currentUser.GetCurrentUser();
 
                 var locker = new Locker()
                 {
@@ -102,8 +106,6 @@ namespace TestLocker.Controllers
                 var createdLocker = entity.Entity;
 
                 await _applicationContext.SaveChangesAsync();
-
-                createdLocker.Owner = null; // TODO: Json ignore not working
 
                 return Ok(createdLocker);
             }
