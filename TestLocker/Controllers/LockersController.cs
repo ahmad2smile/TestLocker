@@ -52,7 +52,10 @@ namespace TestLocker.Controllers
                     return NotFound(new { error = "Locker Not Found" });
                 }
 
-                if (locker.AccessTime != null)
+                var user = await _currentUser.GetCurrentUser();
+                var ownerIsCurrentUser = locker.OwnerId == user.Id;
+
+                if (locker.AccessTime != null || ownerIsCurrentUser)
                 {
                     return Ok(locker);
                 }
