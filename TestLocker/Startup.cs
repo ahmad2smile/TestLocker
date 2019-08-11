@@ -66,7 +66,7 @@ namespace TestLocker
             services.AddSingleton<IJwtService, JwtService>();
             services.AddSingleton<IEmailService, EmailService>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddSingleton<ICurrentUserHelper, CurrentUserHelper>();
+            services.AddScoped<ICurrentUserHelper, CurrentUserHelper>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

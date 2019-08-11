@@ -68,7 +68,7 @@ namespace TestLocker.Controllers
 
                 var email = _currentUser.GetCurrentUserEmail();
 
-                var responseSendEmail = await _emailService.SendEmail("ahmad@oozou.com", "Verify Email", $"User {email} access locker: {locker.Id} at time: {locker.AccessTime}");
+                var responseSendEmail = await _emailService.SendEmail("ahmad@oozou.com", "Locker Accessed", $"User {email} access locker: {locker.Id} at time: {locker.AccessTime}");
 
                 if (responseSendEmail >= 400)
                 {
@@ -115,6 +115,34 @@ namespace TestLocker.Controllers
             catch (Exception)
             {
                 return BadRequest(new { error = "Unable to create the Locker" });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteLocker(string id)
+        {
+            try
+            {
+                var locker = await _applicationContext.Lockers.FirstOrDefaultAsync(l => l.Id.ToString() == id);
+
+                var user = await _currentUser.GetCurrentUser();
+                var ownerIsCurrentUser = locker.OwnerId == user.Id;
+
+
+                if (!ownerIsCurrentUser)
+                {
+                    return Unauthorized(new { error = "You are not authorized to delete this locker" });
+                }
+
+                _applicationContext.Lockers.Remove(locker);
+
+                await _applicationContext.SaveChangesAsync();
+
+                return Ok(new { message = "Locker successfully Deleted" });
+            }
+            catch (Exception)
+            {
+                return BadRequest(new { error = "Unable to Delete the Locker" });
             }
         }
     }

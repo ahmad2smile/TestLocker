@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace TestLocker.Utils
 {
@@ -8,7 +9,7 @@ namespace TestLocker.Utils
         {
             return base.Ok(new
             {
-                code = 200,
+                code = HttpStatusCode.OK.GetHashCode(),
                 data
             });
         }
@@ -17,7 +18,16 @@ namespace TestLocker.Utils
         {
             return base.BadRequest(new
             {
-                code = 400,
+                code = HttpStatusCode.BadRequest.GetHashCode(),
+                data
+            });
+        }
+
+        public override UnauthorizedObjectResult Unauthorized(object data)
+        {
+            return base.Unauthorized(new
+            {
+                code = HttpStatusCode.Unauthorized.GetHashCode(),
                 data
             });
         }
@@ -26,7 +36,7 @@ namespace TestLocker.Utils
         {
             return base.NotFound(new
             {
-                code = 404,
+                code = HttpStatusCode.NotFound.GetHashCode(),
                 data
             });
         }

@@ -8,10 +8,10 @@ namespace TestLocker.Services
 {
     public class CurrentUserHelper : ICurrentUserHelper
     {
-        private readonly HttpContextAccessor _httpContextAccessor;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly UserManager<AppUser> _userManager;
 
-        public CurrentUserHelper(HttpContextAccessor httpContextAccessor, UserManager<AppUser> userManager)
+        public CurrentUserHelper(IHttpContextAccessor httpContextAccessor, UserManager<AppUser> userManager)
         {
             _httpContextAccessor = httpContextAccessor;
             _userManager = userManager;
