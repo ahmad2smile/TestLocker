@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Azure.KeyVault;
-using Microsoft.Azure.Services.AppAuthentication;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.AzureKeyVault;
 using Microsoft.Extensions.Hosting;
+using System.IO;
 
 namespace TestLocker
 {
@@ -16,6 +14,7 @@ namespace TestLocker
 
         private static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration(ConfigConfiguration)
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
                 .ConfigureAppConfiguration((context, builder) =>
                 {
@@ -24,22 +23,21 @@ namespace TestLocker
                         builder.AddUserSecrets<Startup>();
                     }
 
-                    if (!context.HostingEnvironment.IsProduction()) return;
-
-                    var builtConfig = builder.Build();
-
-                    var keyVaultTokenProvider = new AzureServiceTokenProvider();
-
-                    var keyVaultAuthenticationCallback = new KeyVaultClient.AuthenticationCallback(
-                        keyVaultTokenProvider.KeyVaultTokenCallback);
-
-                    var keyVaultClient = new KeyVaultClient(keyVaultAuthenticationCallback);
-
-                    builder.AddAzureKeyVault(
-                        $"https://{builtConfig["KeyVaultName"]}.vault.azure.net/",
-                        keyVaultClient,
-                        new DefaultKeyVaultSecretManager()
-                        );
                 });
+
+        private static void ConfigConfiguration(HostBuilderContext webHostBuilderContext, IConfigurationBuilder configurationBuilder)
+        {
+            configurationBuilder.SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("azurekeyvault.json", false, true)
+                .AddEnvironmentVariables();
+
+            var config = configurationBuilder.Build();
+
+            configurationBuilder.AddAzureKeyVault(
+                $"https://{config["azureKeyVault:vault"]}.vault.azure.net/",
+                config["azureKeyVault:clientId"],
+                config["azureKeyVault:clientSecret"]
+            );
+        }
     }
 }
